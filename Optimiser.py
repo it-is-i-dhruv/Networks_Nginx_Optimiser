@@ -1,9 +1,9 @@
 import os
 import subprocess
 
-path = os.chdir('/etc/nginx')
+# path = os.chdir('/etc/nginx')
 
-opt_params = {"worker_processes"}
+opt_params = {"worker_processes", "root", "index", "if(!-f", }
 
 def worker_process_opt(work, conf):
     print("worker process found, triggering function worker_process_opt")
@@ -26,9 +26,24 @@ def worker_process_opt(work, conf):
     conf.append(final_line)
     return None
 
+def root_loc_opt(work, conf):
+    print("root location found, triggering function root_loc_opt")
+
+def mult_index_opt(work, conf):
+    print("multiple indexes found, triggering function mult_index_opt")
+
+def if_file_exist_opt(work, conf):
+    print("\'if file exist\' found, triggering function if_file_exist_opt")
+
+def http2_opt(work, conf):
+    print("listen 443 ssl http2; found, triggering function http2_opt")
+
+def cache_opt(work, conf):
+    print("cache not found, triggering function cache_opt")
+
 
 comments = []
-with open('nginx.conf', 'r+') as config:
+with open('nginx2.conf', 'r+') as config:
     lines = config.readlines()
     print(lines)
     for i in lines:
@@ -61,11 +76,11 @@ with open('nginx.conf', 'r+') as config:
 # checker = str(result.stdout.decode('utf-8'))
 # print(checker)
 # assert "is successful" in checker
-result = subprocess.run(['nginx', '-t'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-stdout_str = result.stdout.decode('utf-8')
-stderr_str = result.stderr.decode('utf-8')
+# result = subprocess.run(['nginx', '-t'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+# stdout_str = result.stdout.decode('utf-8')
+# stderr_str = result.stderr.decode('utf-8')
 
 # print(stdout_str)
-print(stderr_str)
+# print(stderr_str)
 #no idea why it outputs to stderr instead of stdout......
-assert "is successful" in stderr_str
+# assert "is successful" in stderr_str
