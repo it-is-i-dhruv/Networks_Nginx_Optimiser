@@ -38,8 +38,13 @@ def if_file_exist_opt(work, conf):
 def http2_opt(work, conf):
     print("listen 443 ssl http2; found, triggering function http2_opt")
 
+# Cache the static content in the server
 def cache_opt(work, conf):
     print("cache not found, triggering function cache_opt")
+    
+
+
+    
 
 
 comments = []
@@ -51,7 +56,8 @@ with open('nginx2.conf', 'r+') as config:
             # print(i[-2])+
             # print(i.strip().split())
             if i.strip().split()[0] in opt_params :
-                print(i)
+                print("i:", i)
+                print("comments: ", comments)
                 worker_process_opt(i, comments)
                 continue
             # if "worker_processes" in i:
