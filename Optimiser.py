@@ -1,9 +1,10 @@
 import os
 import subprocess
+import re
 
 # path = os.chdir('/etc/nginx')
 
-opt_params = {"worker_processes", "root", "index", "if(!-f", }
+opt_params = {"worker_processes" }
 
 def worker_process_opt(work, conf):
     print("worker process found, triggering function worker_process_opt")
@@ -26,30 +27,43 @@ def worker_process_opt(work, conf):
     conf.append(final_line)
     return None
 
-def root_loc_opt(work, conf):
-    print("root location found, triggering function root_loc_opt")
-
-def mult_index_opt(work, conf):
-    print("multiple indexes found, triggering function mult_index_opt")
-
-def if_file_exist_opt(work, conf):
-    print("\'if file exist\' found, triggering function if_file_exist_opt")
-
-def http2_opt(work, conf):
-    print("listen 443 ssl http2; found, triggering function http2_opt")
-
 # Cache the static content in the server
-def cache_opt(work, conf):
+def cache_opt(output_path=None):
     print("cache not found, triggering function cache_opt")
-    
+    # Define caching settings to be added
+    caching_settings = """
+    # Caching settings
+    proxy_cache_path /var/cache/nginx levels=1:2 keys_zone=my_cache:10m max_size=10g
+                     inactive=60m use_temp_path=off;
+    proxy_cache_key "$scheme$request_method$host$request_uri";
+    add_header X-Cache-Status $upstream_cache_status;
+    """
+
+    # Ensure output_path is set
+    if output_path is None:
+        output_path = "nginx.conf"
+
+    # Read the original nginx.conf
+    with open("nginx.conf", 'r') as file:
+        config_contents = file.read()
+
+    # Find the http block and insert caching settings
+    http_block_pattern = r'(http\s*\{)'
+    modified_contents = re.sub(http_block_pattern, r'\1' + caching_settings, config_contents, count=1)
+    # Write the modified configuration back to the file
+    with open(output_path, 'w') as file:
+        file.write(modified_contents)
+
+    print(f'Updated Nginx configuration has been saved to {output_path}')
 
 
     
 
 
 comments = []
-with open('nginx2.conf', 'r+') as config:
+with open('nginx.conf', 'r+') as config:
     lines = config.readlines()
+    cache_opt()
     print(lines)
     for i in lines:
         try:
