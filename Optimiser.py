@@ -32,11 +32,11 @@ def cache_opt(output_path=None):
     print("cache not found, triggering function cache_opt")
     # Define caching settings to be added
     caching_settings = """
-    # Caching settings
-    proxy_cache_path /var/cache/nginx levels=1:2 keys_zone=my_cache:10m max_size=10g
-                     inactive=60m use_temp_path=off;
-    proxy_cache_key "$scheme$request_method$host$request_uri";
-    add_header X-Cache-Status $upstream_cache_status;
+    # Static file caching
+    location ~* \.(jpg|jpeg|png|gif|ico|css|js)$ {
+        expires 30d;
+        add_header Cache-Control "public, no-transform";
+    }
     """
 
     # Ensure output_path is set
@@ -89,6 +89,8 @@ with open('nginx.conf', 'r+') as config:
     config.truncate(0)
     for line in comments:
         config.write(line)
+    
+cache_opt()
 
 #at the end just replace conf with comments
 #check for nginx -t
