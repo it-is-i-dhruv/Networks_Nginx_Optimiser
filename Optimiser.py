@@ -9,10 +9,12 @@ def tcp_nopush_opt(line, conf):
     print("tcp_nopush directive found, triggering optimization")
     # Check if the directive is already set to 'on'
     if 'tcp_nopush on' not in line:
-        conf.append('tcp_nopush on;\n')  # Add 'tcp_nopush on' to the configuration if not already present
+        # Replace any existing 'tcp_nopush' directive with 'tcp_nopush on'
+        line = 'tcp_nopush on;\n'
         print('Optimization done: tcp_nopush on')
     else:
         print('tcp_nopush directive already optimized')
+    conf.append(line)
 
 comments = []
 with open('nginx.conf', 'r+') as config:
