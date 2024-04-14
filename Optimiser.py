@@ -1,11 +1,14 @@
 import os
 import subprocess
 
-path = os.chdir('/etc/nginx')
+# Change directory to Nginx configuration directory
+os.chdir('/etc/nginx')
 
-opt_params = {"tcp_nopush"}  # Add 'tcp_nopush' to the optimization parameters
+# Define the optimization parameter
+opt_param = "tcp_nopush"
 
-def tcp_nopush_opt(line, conf):
+# Function to optimize the tcp_nopush directive
+def optimize_tcp_nopush(line, conf):
     print("tcp_nopush directive found, triggering optimization")
     # Check if the directive is already set to 'on'
     if 'tcp_nopush on' not in line:
@@ -17,21 +20,25 @@ def tcp_nopush_opt(line, conf):
     conf.append(line)
 
 comments = []
+# Open the Nginx configuration file
 with open('nginx.conf', 'r+') as config:
     lines = config.readlines()
     for line in lines:
         try:
-            # Check if the current line contains an optimization parameter
-            if any(param in line for param in opt_params):
-                tcp_nopush_opt(line, comments)
+            # Check if the current line contains the optimization parameter
+            if opt_param in line:
+                optimize_tcp_nopush(line, comments)
                 continue
             comments.append(line)
         except:
             comments.append(line)
             continue
     
+    # Move the file pointer to the beginning and truncate the file
     config.seek(0)
     config.truncate(0)
+    
+    # Write the optimized configuration back to the file
     for line in comments:
         config.write(line)
 
@@ -40,5 +47,6 @@ result = subprocess.run(['nginx', '-t'], stdout=subprocess.PIPE, stderr=subproce
 stdout_str = result.stdout.decode('utf-8')
 stderr_str = result.stderr.decode('utf-8')
 
+# Print the result of the configuration test
 print(stderr_str)
 assert "is successful" in stderr_str
