@@ -1,71 +1,52 @@
+# import
 import os
 import subprocess
 
-path = os.chdir('/etc/nginx')
+# change directory to Nginx
+os.chdir('/etc/nginx')
 
-opt_params = {"worker_processes"}
+# optimisations
+keepalive_timeout = "keepalive_timeout"
+keepalive_requests = "keepalive_requests"
 
-def worker_process_opt(work, conf):
-    print("worker process found, triggering function worker_process_opt")
-    # print(work)
-    # print(work.strip().split()[1])
-    work_split = work.strip().split()
-    
-    #cat /proc/cpuinfo | grep "cpu cores" | head -1 just spread over
-    cpuinfo = subprocess.run(['cat', '/proc/cpuinfo'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    grep_cores = subprocess.run(['grep', 'cpu cores'], input=cpuinfo.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    head = subprocess.run(['head', '-1'], input=grep_cores.stdout, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    cores_line= head.stdout.decode('utf-8')
-    cores = cores_line.strip().split()[3]
-    # print(cores)
-    # print(type(cores))
-    work_split[1] = '{};\n'.format(cores)
-    # print(work_split)
-    final_line = ' '.join(work_split)
-    print('optimisation done: ',final_line)
-    conf.append(final_line)
-    return None
+# optimisation of keepalive_timeout
+def optimise_keepalive_timeout(line, conf):
+    line = 'keepalive_timeout 60;\n'
+    conf.append(line)
 
+# optimisation of keepalive_requests
+def optimise_keepalive_requests(line, conf):
+    line = 'keepalive_requests 100;\n'
+    conf.append(line)
 
-comments = []
-with open('nginx.conf', 'r+') as config:
-    lines = config.readlines()
-    print(lines)
-    for i in lines:
+optimised_conf = []
+# open Nginx confuration file
+with open('nginx.conf', 'r+') as conf:
+    lines = conf.readlines()
+    for line in lines:
         try:
-            # print(i[-2])+
-            # print(i.strip().split())
-            if i.strip().split()[0] in opt_params :
-                print(i)
-                worker_process_opt(i, comments)
+            # check if line contains keepalive_timeout or keepalive_requests
+            if keepalive_timeout in line:
+                optimise_keepalive_timeout(line, optimised_conf)
                 continue
-            # if "worker_processes" in i:
-            #     worker_process_opt(i) 
-            # if i[-2] == ';':
-            #     # print(i)
-            #     continue
-            comments.append(i)
+            elif keepalive_requests in line:
+                optimise_keepalive_requests(line, optimised_conf)
+            optimised_conf.append(line)
         except:
-            comments.append(i)
+            optimised_conf.append(line)
             continue
-    # print(comments)
-    # assert comments == lines
-    config.seek(0)
-    config.truncate(0)
-    for line in comments:
-        config.write(line)
+    
+    # move file pointer to beginning and truncate file
+    conf.seek(0)
+    conf.truncate(0)
+    
+    # write optimised_conf back to conf
+    for line in optimised_conf:
+        conf.write(line)
 
-#at the end just replace conf with comments
-#check for nginx -t
-# result = subprocess.run(['nginx', '-t'], stdout=subprocess.PIPE)
-# checker = str(result.stdout.decode('utf-8'))
-# print(checker)
-# assert "is successful" in checker
+# test
 result = subprocess.run(['nginx', '-t'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 stdout_str = result.stdout.decode('utf-8')
 stderr_str = result.stderr.decode('utf-8')
 
-# print(stdout_str)
-print(stderr_str)
-#no idea why it outputs to stderr instead of stdout......
 assert "is successful" in stderr_str
