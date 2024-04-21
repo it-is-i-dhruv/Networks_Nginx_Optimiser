@@ -4,10 +4,10 @@ import re
 
 # path = os.chdir('/etc/nginx')
 
-opt_params = {"worker_processes", "tcp_nopush", "keepalive_timeout", "keepalive_requests" }
+opt_params = {"worker_processes", "tcp_nopush", "keepalive_timeout", "keepalive_requests", "listen", "events"}
 
 def worker_processes_opt(work, conf):
-    print("worker process found, triggering function worker_process_opt")
+    print("<---- worker process found, triggering function worker_process_opt --->")
     # print(work)
     # print(work.strip().split()[1])
     work_split = work.strip().split()
@@ -24,9 +24,27 @@ def worker_processes_opt(work, conf):
     # print(work_split)
     final_line = ' '.join(work_split)
     print('optimisation done: ',final_line)
+    print("<--- completed worker processes optimisations --->")
     conf.append(final_line)
     return None
+def events_opt(events, conf):
+    print("events triggered")
+    conf.append(events)
+    multi_line = "multi_accept on;\n"
+    conf.append(multi_line)
+    print("<---- finished multi accept --->")
+    return None
 
+def listen_opt(listen, conf):
+    print("listen triggered")
+    listen_split = listen.strip().split()
+    print(listen_split[0])
+    print(listen_split[1])
+    listen_split[1] = '80 reuseport;\n'
+    final_line = ' '.join(listen_split)
+    conf.append(final_line)
+
+    return None
 def modify_nginx_config(file_path):
     with open(file_path, 'r') as file:
         lines = file.readlines()
@@ -139,7 +157,7 @@ def keepalive_requests_opt(line, conf):
     return None
 
 comments = []
-file_path = 'nginx.conf'
+file_path = '/etc/nginx/nginx.conf'
 with open(file_path, 'r+') as config:
     lines = config.readlines()
     # print(lines)
