@@ -83,39 +83,66 @@ def modify_nginx_config(file_path):
         file.writelines(lines)
 
 def tcp_nopush_opt(line, conf):
-    print("tcp_nopush directive found, triggering optimization")
+    print("<--- tcp_nopush directive found, triggering optimization --->")
     # Check if the directive is already set to 'on'
     if 'tcp_nopush on' not in line:
         # Replace any existing 'tcp_nopush' directive with 'tcp_nopush on'
         line = 'tcp_nopush on;\n'
-        print('Optimization done: tcp_nopush on')
+        print(' Optimization done: tcp_nopush on ')
     else:
-        print('tcp_nopush directive already optimized')
+        print('tcp_nopush directive already optimized ')
+    print('<--- tcp_nopush optimisation completed ---> ')
     conf.append(line)
+
+def update_ssl_directives(config_lines):
+    ssl_session_cache = 'ssl_session_cache shared:NGX_SSL_CACHE:10m;'
+    ssl_session_timeout = 'ssl_session_timeout 4h;'
+    ssl_session_tickets = 'ssl_session_tickets off;'
+    ssl_buffer_size = 'ssl_buffer_size 1400;'
+    updated_lines = []
+    print("<---beginning ssl optimisations--->")
+    for line in config_lines:
+        # Update SSL/TLS session handling directives if present
+        if 'ssl_session_cache' in line:
+            updated_lines.append(ssl_session_cache + '\n')
+            print("updated ssl sessions cache")
+        elif 'ssl_session_timeout' in line:
+            updated_lines.append(ssl_session_timeout + '\n')
+            print("updated ssl session timeout")
+        elif 'ssl_session_tickets' in line:
+            updated_lines.append(ssl_session_tickets + '\n')
+            print("updated ssl session tickets")
+        elif 'ssl_buffer_size' in line:
+            updated_lines.append(ssl_buffer_size + '\n')
+            print("updated ssl buffer size")
+        else:
+            updated_lines.append(line)
+    print("<---finished ssl optimisations--->")
+    return updated_lines
 
 comments = []
 with open('nginx.conf', 'r+') as config:
     lines = config.readlines()
-    print(lines)
+    # print(lines)
     for i in lines:
         try:
             # print(i[-2])+
             # print(i.strip().split())
             # print(i.strip().split()[0][1:])
             if i.strip().split()[0] in opt_params   :
-                print("i:", i)
-                print("comments: ", comments)
-                print(globals())
+                # print("i:", i)
+                # print("comments: ", comments)
+                # print(globals())
                 # worker_process_opt(i, comments)
-                print(i.strip().split()[0]+ "_opt")
+                # print(i.strip().split()[0]+ "_opt")
                 globals()[i.strip().split()[0]+ "_opt"](i, comments)
                 continue
             elif i.strip().split()[0][1:] in opt_params: 
-                print("i:", i)
-                print("comments: ", comments)
-                print(globals())
-                # worker_process_opt(i, comments)
-                print(i.strip().split()[0]+ "_opt")
+                # print("i:", i)
+                # print("comments: ", comments)
+                # print(globals())
+                # # worker_process_opt(i, comments)
+                # print(i.strip().split()[0]+ "_opt")
                 globals()[i.strip().split()[0][1:]+ "_opt"](i, comments)
                 continue
             # if "worker_processes" in i:
@@ -129,12 +156,13 @@ with open('nginx.conf', 'r+') as config:
             continue
     # print(comments)
     # assert comments == lines
+    ssl_updated_lines = update_ssl_directives(comments)
     config.seek(0)
     config.truncate(0)
-    for line in comments:
+    for line in ssl_updated_lines:
         config.write(line)
 
-# modify_nginx_config('nginx.conf')
+modify_nginx_config('nginx.conf')
 #at the end just replace conf with comments
 #check for nginx -t
 # result = subprocess.run(['nginx', '-t'], stdout=subprocess.PIPE)
