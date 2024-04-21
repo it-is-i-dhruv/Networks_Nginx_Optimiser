@@ -27,43 +27,65 @@ def worker_process_opt(work, conf):
     conf.append(final_line)
     return None
 
-# Cache the static content in the server
-def cache_opt(output_path=None):
-    print("cache not found, triggering function cache_opt")
-    # Define caching settings to be added
-    caching_settings = """
-    # Static file caching
-    location ~* \.(jpg|jpeg|png|gif|ico|css|js)$ {
-        expires 30d;
-        add_header Cache-Control "public, no-transform";
-    }
-    """
+def modify_nginx_config(file_path):
+    with open(file_path, 'r') as file:
+        lines = file.readlines()
 
-    # Ensure output_path is set
-    if output_path is None:
-        output_path = "nginx.conf"
+    # Regular expressions to detect configurations
+    re_http_block = re.compile(r'^\s*http\s*{')
+    re_server_block = re.compile(r'^\s*server\s*{')
+    re_proxy_cache_path = re.compile(r'^\s*proxy_cache_path')
+    re_proxy_cache = re.compile(r'^\s*proxy_cache')
+    re_proxy_pass = re.compile(r'^\s*proxy_pass')
+    re_proxy_cache_valid = re.compile(r'^\s*proxy_cache_valid')
 
-    # Read the original nginx.conf
-    with open("nginx.conf", 'r') as file:
-        config_contents = file.read()
+    cache_path_found = False
+    http_block_index = None
 
-    # Find the http block and insert caching settings
-    http_block_pattern = r'(http\s*\{)'
-    modified_contents = re.sub(http_block_pattern, r'\1' + caching_settings, config_contents, count=1)
+    # Search for HTTP block and proxy_cache_path
+    for i, line in enumerate(lines):
+        if re_http_block.match(line):
+            http_block_index = i
+        if http_block_index is not None and re_proxy_cache_path.match(line):
+            cache_path_found = True
+            break
+
+    # Prompt for cache location if not found
+    if not cache_path_found:
+        cache_location = input("Enter the location for cache (leave blank for '/var/cache/nginx'): ") or "/var/cache/nginx"
+        cache_config = f"    proxy_cache_path {cache_location} keys_zone=mycache:10m;\n"
+        lines.insert(http_block_index + 1, cache_config)
+
+    # Process each server block
+    in_server_block = False
+    for i in range(len(lines)):
+        if re_server_block.match(lines[i]):
+            in_server_block = True
+            server_start_index = i
+            proxy_cache_inserted = False
+        
+        if in_server_block and re_server_block.match(lines[i]):
+            # Insert proxy_cache mycache if not present in server block
+            if not proxy_cache_inserted:
+                lines.insert(server_start_index + 1, "        proxy_cache mycache;\n")
+                proxy_cache_inserted = True
+
+        if in_server_block and re_http_block.match(lines[i]):
+            in_server_block = False
+        
+        # Check for proxy_pass and add proxy_cache_valid if not present
+        if in_server_block and re_proxy_pass.match(lines[i]):
+            if i+1 < len(lines) and not re_proxy_cache_valid.match(lines[i+1]):
+                lines.insert(i + 1, "            proxy_cache_valid 200 302 60m;\n")
+
     # Write the modified configuration back to the file
-    with open(output_path, 'w') as file:
-        file.write(modified_contents)
-
-    print(f'Updated Nginx configuration has been saved to {output_path}')
-
-
-    
+    with open(file_path, 'w') as file:
+        file.writelines(lines)
 
 
 comments = []
 with open('nginx.conf', 'r+') as config:
     lines = config.readlines()
-    cache_opt()
     print(lines)
     for i in lines:
         try:
@@ -89,9 +111,8 @@ with open('nginx.conf', 'r+') as config:
     config.truncate(0)
     for line in comments:
         config.write(line)
-    
-cache_opt()
 
+modify_nginx_config('nginx.conf')
 #at the end just replace conf with comments
 #check for nginx -t
 # result = subprocess.run(['nginx', '-t'], stdout=subprocess.PIPE)
