@@ -4,7 +4,7 @@ import re
 
 # path = os.chdir('/etc/nginx')
 
-opt_params = {"worker_processes", "tcp_nopush" }
+opt_params = {"worker_processes", "tcp_nopush", "keepalive_timeout", "keepalive_requests" }
 
 def worker_processes_opt(work, conf):
     print("worker process found, triggering function worker_process_opt")
@@ -120,8 +120,27 @@ def update_ssl_directives(config_lines):
     print("<---finished ssl optimisations--->")
     return updated_lines
 
+# optimisation of keepalive_timeout
+def keepalive_timeout_opt(line, conf):
+    if 'keepalive_timeout 60;\n' in conf:
+        return None
+    line = 'keepalive_timeout 60;\n'
+    print("keepalive timeout optimised")
+    conf.append(line)
+    return None
+
+# optimisation of keepalive_requests
+def keepalive_requests_opt(line, conf):
+    if 'keepalive_requests 100;\n' in conf:
+        return None
+    line = 'keepalive_requests 100;\n'
+    print("keepalive requests optimised")
+    conf.append(line)
+    return None
+
 comments = []
-with open('nginx.conf', 'r+') as config:
+file_path = 'nginx.conf'
+with open(file_path, 'r+') as config:
     lines = config.readlines()
     # print(lines)
     for i in lines:
@@ -162,18 +181,18 @@ with open('nginx.conf', 'r+') as config:
     for line in ssl_updated_lines:
         config.write(line)
 
-modify_nginx_config('nginx.conf')
+modify_nginx_config(file_path)
 #at the end just replace conf with comments
 #check for nginx -t
 # result = subprocess.run(['nginx', '-t'], stdout=subprocess.PIPE)
 # checker = str(result.stdout.decode('utf-8'))
 # print(checker)
 # assert "is successful" in checker
-# result = subprocess.run(['nginx', '-t'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-# stdout_str = result.stdout.decode('utf-8')
-# stderr_str = result.stderr.decode('utf-8')
+result = subprocess.run(['nginx', '-t'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+stdout_str = result.stdout.decode('utf-8')
+stderr_str = result.stderr.decode('utf-8')
 
 # print(stdout_str)
-# print(stderr_str)
+print(stderr_str)
 #no idea why it outputs to stderr instead of stdout......
-# assert "is successful" in stderr_str
+assert "is successful" in stderr_str
