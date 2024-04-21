@@ -4,9 +4,9 @@ import re
 
 # path = os.chdir('/etc/nginx')
 
-opt_params = {"worker_processes" }
+opt_params = {"worker_processes", "tcp_nopush" }
 
-def worker_process_opt(work, conf):
+def worker_processes_opt(work, conf):
     print("worker process found, triggering function worker_process_opt")
     # print(work)
     # print(work.strip().split()[1])
@@ -82,6 +82,16 @@ def modify_nginx_config(file_path):
     with open(file_path, 'w') as file:
         file.writelines(lines)
 
+def tcp_nopush_opt(line, conf):
+    print("tcp_nopush directive found, triggering optimization")
+    # Check if the directive is already set to 'on'
+    if 'tcp_nopush on' not in line:
+        # Replace any existing 'tcp_nopush' directive with 'tcp_nopush on'
+        line = 'tcp_nopush on;\n'
+        print('Optimization done: tcp_nopush on')
+    else:
+        print('tcp_nopush directive already optimized')
+    conf.append(line)
 
 comments = []
 with open('nginx.conf', 'r+') as config:
@@ -91,10 +101,22 @@ with open('nginx.conf', 'r+') as config:
         try:
             # print(i[-2])+
             # print(i.strip().split())
-            if i.strip().split()[0] in opt_params :
+            # print(i.strip().split()[0][1:])
+            if i.strip().split()[0] in opt_params   :
                 print("i:", i)
                 print("comments: ", comments)
-                worker_process_opt(i, comments)
+                print(globals())
+                # worker_process_opt(i, comments)
+                print(i.strip().split()[0]+ "_opt")
+                globals()[i.strip().split()[0]+ "_opt"](i, comments)
+                continue
+            elif i.strip().split()[0][1:] in opt_params: 
+                print("i:", i)
+                print("comments: ", comments)
+                print(globals())
+                # worker_process_opt(i, comments)
+                print(i.strip().split()[0]+ "_opt")
+                globals()[i.strip().split()[0][1:]+ "_opt"](i, comments)
                 continue
             # if "worker_processes" in i:
             #     worker_process_opt(i) 
@@ -112,7 +134,7 @@ with open('nginx.conf', 'r+') as config:
     for line in comments:
         config.write(line)
 
-modify_nginx_config('nginx.conf')
+# modify_nginx_config('nginx.conf')
 #at the end just replace conf with comments
 #check for nginx -t
 # result = subprocess.run(['nginx', '-t'], stdout=subprocess.PIPE)
